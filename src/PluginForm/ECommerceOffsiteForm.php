@@ -44,7 +44,7 @@ class ECommerceOffsiteForm extends BasePaymentOffsiteForm {
       'PAYMENT_ID' => $payment->id(),
     ]);
     // Ingenico requires the AMOUNT value to be sent in decimals.
-    $ecommercePaymentRequest->setAmount((int) $payment->getAmount()->getNumber() * 100);
+    $ecommercePaymentRequest->setAmount((int) ($payment->getAmount()->getNumber() * 100));
     $ecommercePaymentRequest->setCurrency($payment->getAmount()->getCurrencyCode());
     $ecommercePaymentRequest->setLanguage($payment_gateway_configuration['language']);
 

@@ -260,7 +260,7 @@ class DirectLink extends OnsitePaymentGatewayBase implements DirectLinkInterface
       'PAYMENT_ID' => $payment->id(),
     ]);
     // Ingenico requires the AMOUNT value to be sent in decimals.
-    $directLinkRequest->setAmount((int) $payment->getAmount()->getNumber() * 100);
+    $directLinkRequest->setAmount((int) ($payment->getAmount()->getNumber() * 100));
     $directLinkRequest->setCurrency($payment->getAmount()->getCurrencyCode());
     $directLinkRequest->setLanguage($this->configuration['language']);
 
