@@ -11,7 +11,6 @@ use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
 use Drupal\commerce_payment\Exception\DeclineException;
 use Drupal\commerce_payment\Exception\InvalidResponseException;
-use Drupal\commerce_payment\Exception\HardDeclineException;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
@@ -19,12 +18,9 @@ use GuzzleHttp\ClientInterface;
 use Ogone\DirectLink\Alias;
 use Ogone\DirectLink\CreateAliasRequest;
 use Ogone\DirectLink\CreateAliasResponse;
-use Ogone\DirectLink\DirectLinkMaintenanceRequest;
-use Ogone\DirectLink\DirectLinkMaintenanceResponse;
 use Ogone\DirectLink\DirectLinkPaymentRequest;
 use Ogone\DirectLink\DirectLinkPaymentResponse;
 use Ogone\DirectLink\Eci;
-use Ogone\DirectLink\MaintenanceOperation;
 use Ogone\DirectLink\PaymentOperation;
 use Ogone\HashAlgorithm;
 use Ogone\Passphrase;
@@ -63,9 +59,10 @@ class DirectLink extends OnsitePaymentGatewayBase implements DirectLinkInterface
    * {@inheritdoc}
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PaymentTypeManager $payment_type_manager, PaymentMethodTypeManager $payment_method_type_manager, TimeInterface $time, ClientInterface $client) {
-    $this->httpClient = $client;
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager, $time);
- }
+
+    $this->httpClient = $client;
+  }
 
   /**
    * {@inheritdoc}
@@ -219,7 +216,6 @@ class DirectLink extends OnsitePaymentGatewayBase implements DirectLinkInterface
     // The only option to delete an alias is to do it either manually through
     // their UI, or using Bulk Alias management via batch file. See
     // https://payment-services.ingenico.com/int/en/ogone/support/guides/integration%20guides/alias
-
     // Delete the local entity.
     $payment_method->delete();
   }

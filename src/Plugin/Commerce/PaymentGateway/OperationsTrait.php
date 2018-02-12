@@ -2,37 +2,16 @@
 
 namespace Drupal\commerce_ingenico\Plugin\Commerce\PaymentGateway;
 
-use Drupal\Component\Utility\UrlHelper;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Form\FormStateInterface;
-use Drupal\commerce_ingenico\PluginForm\PaymentRenewAuthorizationForm;
-use Drupal\commerce_payment\CreditCard;
 use Drupal\commerce_payment\Entity\PaymentInterface;
-use Drupal\commerce_payment\Entity\PaymentMethodInterface;
 use Drupal\commerce_payment\Exception\DeclineException;
 use Drupal\commerce_payment\Exception\InvalidResponseException;
-use Drupal\commerce_payment\Exception\HardDeclineException;
-use Drupal\commerce_payment\Exception\InvalidRequestException;
-use Drupal\commerce_payment\PaymentMethodTypeManager;
-use Drupal\commerce_payment\PaymentTypeManager;
-use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OnsitePaymentGatewayBase;
 use Drupal\commerce_price\Price;
-use GuzzleHttp\ClientInterface;
-use Ogone\DirectLink\Alias;
-use Ogone\DirectLink\CreateAliasRequest;
-use Ogone\DirectLink\CreateAliasResponse;
 use Ogone\DirectLink\DirectLinkMaintenanceRequest;
 use Ogone\DirectLink\DirectLinkMaintenanceResponse;
-use Ogone\DirectLink\DirectLinkPaymentRequest;
-use Ogone\DirectLink\DirectLinkPaymentResponse;
-use Ogone\DirectLink\Eci;
 use Ogone\DirectLink\MaintenanceOperation;
-use Ogone\DirectLink\PaymentOperation;
 use Ogone\HashAlgorithm;
 use Ogone\Passphrase;
 use Ogone\ShaComposer\AllParametersShaComposer;
-use Ogone\ParameterFilter\AliasShaInParameterFilter;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 trait OperationsTrait {
 

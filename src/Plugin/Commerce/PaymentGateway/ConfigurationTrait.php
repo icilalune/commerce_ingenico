@@ -110,10 +110,10 @@ trait ConfigurationTrait {
     $form['api_logging'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Log the following messages for debugging'),
-      '#options' => array(
+      '#options' => [
         'request' => $this->t('API request messages'),
         'response' => $this->t('API response messages'),
-      ),
+      ],
       '#default_value' => $this->configuration['api_logging'],
     ];
 
@@ -154,7 +154,7 @@ trait ConfigurationTrait {
           '#default_value' => $this->configuration['3ds']['3d_secure_ecommerce_gateway'],
           '#states' => [
             'visible' => [
-              ':input[name="configuration[3ds][3d_secure]"]' => array('value' => 1),
+              ':input[name="configuration[3ds][3d_secure]"]' => ['value' => 1],
             ],
           ],
         ];
