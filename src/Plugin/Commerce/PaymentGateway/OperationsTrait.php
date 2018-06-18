@@ -313,7 +313,7 @@ trait OperationsTrait {
     $directLinkRequest->setPayId($payment->getRemoteId());
     // Ingenico requires the AMOUNT value to be sent in decimals.
     $directLinkRequest->setAmount((int) ($amount->getNumber() * 100));
-
+    $balance = $payment->getBalance();
     $operation = $balance->subtract($amount)->isZero() ? MaintenanceOperation::OPERATION_REFUND_LAST_OR_FULL : MaintenanceOperation::OPERATION_REFUND_PARTIAL;
     $directLinkRequest->setOperation(new MaintenanceOperation($operation));
 
