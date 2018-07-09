@@ -2,6 +2,8 @@
 
 namespace Drupal\commerce_ingenico\PluginForm;
 
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm as BasePaymentOffsiteForm;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm;
@@ -10,8 +12,36 @@ use Ogone\Ecommerce\EcommercePaymentRequest;
 use Ogone\HashAlgorithm;
 use Ogone\Passphrase;
 use Ogone\ShaComposer\AllParametersShaComposer;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class ECommerceOffsiteForm extends BasePaymentOffsiteForm {
+class ECommerceOffsiteForm extends BasePaymentOffsiteForm implements ContainerInjectionInterface {
+
+  /**
+   * \Drupal\Component\Datetime\TimeInterface
+   *
+   * @var \Drupal\Component\Datetime\TimeInterface
+   */
+  protected $time;
+
+  /**
+   * ECommerceOffsiteForm constructor.
+   *
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
+   */
+  public function __construct(TimeInterface $time) {
+    $this->time = $time;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('datetime.time')
+    );
+  }
+
 
   /**
    * {@inheritdoc}
@@ -37,7 +67,7 @@ class ECommerceOffsiteForm extends BasePaymentOffsiteForm {
     $ecommercePaymentRequest = new EcommercePaymentRequest($shaComposer);
     $ecommercePaymentRequest->setPspid($payment_gateway_configuration['pspid']);
 
-    $ecommercePaymentRequest->setOrderid($payment->getOrder()->id() . '-' . $payment->getOrder()->getCreatedTime());
+    $ecommercePaymentRequest->setOrderid($payment->getOrder()->id() . '-' . $this->time->getCurrentTime());
     $ecommercePaymentRequest->setCom((string) t('Order @order_number', ['@order_number' => $payment->getOrder()->getOrderNumber()]));
     $ecommercePaymentRequest->setParamplus([
       'ORDER_ID' => $payment->getOrder()->id(),
