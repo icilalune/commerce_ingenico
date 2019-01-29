@@ -1129,7 +1129,7 @@ function commerce_ingenico_build_redirect_form($form, &$form_state, $order, $set
   $data['ECOM_BILLTO_POSTAL_STREET_LINE1'] = trim($customer_profile->commerce_customer_address['und'][0]['thoroughfare']);
   $data['ECOM_BILLTO_POSTAL_STREET_LINE2'] = trim($customer_profile->commerce_customer_address['und'][0]['premise']);
 
-  if (module_exists('commerce_shipping')) {
+  if (module_exists('commerce_shipping') && !empty($order->commerce_customer_shipping['und'][0]['profile_id'])) {
     $customer_profile = commerce_customer_profile_load($order->commerce_customer_shipping['und'][0]['profile_id']);
     $data['ECOM_SHIPTO_COMPANY'] = trim($customer_profile->commerce_customer_address['und'][0]['organisation_name']);
     $data['ECOM_SHIPTO_ONLINE_EMAIL'] = trim($order->mail);
