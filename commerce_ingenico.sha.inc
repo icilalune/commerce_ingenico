@@ -8,7 +8,7 @@
 /**
  * Validate the feedback with the SHA signature.
  */
-function commerce_ingenico_feedback_valid_sha($feedback) {
+function commerce_ingenico_feedback_valid_sha($feedback, $payment_method) {
   $incoming_sha = [];
   foreach (commerce_ingenico_sha_out_parameters() as $param) {
     if (isset($feedback[$param]) && $feedback[$param] !== '') {
@@ -16,7 +16,7 @@ function commerce_ingenico_feedback_valid_sha($feedback) {
     }
   }
   // Get the right sha algorithm.
-  $api = commerce_ingenico_api_object();
+  $api = commerce_ingenico_api_object('', $payment_method);
   $sha_composer = $api->preparePhraseToHash('sha_out');
   $sha_out = $sha_composer->compose($incoming_sha);
   return strtoupper($sha_out) === $feedback['SHASIGN'];
