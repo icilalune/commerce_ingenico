@@ -1303,6 +1303,11 @@ function commerce_ingenico_valid_sha_callback($order, $payment_method, $feedback
 function commerce_ingenico_callback() {
   // Load order and payment_method objects.
   if ($feedback = commerce_ingenico_get_feedback()) {
+    $order_id = $feedback['ORDERID'];
+    if (strpos($order_id, '-')) {
+      $parts = explode('-', $order_id);
+      $order_id = $parts[0];
+    }
     $order = commerce_order_load($order_id);
     if ($order) {
       // Load the payment method, since it won't be available
