@@ -628,10 +628,10 @@ function commerce_ingenico_delete_access($order, $transaction) {
 /**
  * Creates api object.
  */
-function commerce_ingenico_api_object($settings = '', $payment_method) {
+function commerce_ingenico_api_object($settings = '', $payment_method = 'ingenico_direct|commerce_payment_ingenico_direct') {
   if (empty($settings)) {
-	$instance = commerce_payment_method_instance_load('ingenico_direct|commerce_payment_ingenico_direct');
-	return new IngenicoApi($instance['settings'], 'ingenico_direct|commerce_payment_ingenico_direct');
+	$instance = commerce_payment_method_instance_load($payment_method);
+	return new IngenicoApi($instance['settings'], $payment_method);
   }
   else {
 	return new IngenicoApi($settings, $payment_method);
@@ -1288,7 +1288,7 @@ function commerce_ingenico_valid_sha_callback($order, $payment_method, $feedback
   if (empty($payment_method)) {
     $payment_method = commerce_payment_method_instance_load('ingenico_offsite|commerce_payment_ingenico_offsite');
   }
-  if (!commerce_ingenico_feedback_valid_sha($feedback)) {
+  if (!commerce_ingenico_feedback_valid_sha($feedback, $payment_method['instance_id'])) {
     if ($payment_method['settings']['logs'] == 0) {
       watchdog('commerce_ingenico', "SHA signature doesn't match", array(), WATCHDOG_ERROR);
     }
@@ -1303,7 +1303,7 @@ function commerce_ingenico_valid_sha_callback($order, $payment_method, $feedback
 function commerce_ingenico_callback() {
   // Load order and payment_method objects.
   if ($feedback = commerce_ingenico_get_feedback()) {
-    $order = commerce_order_load_by_number($feedback['ORDERID']);
+    $order = commerce_order_load($order_id);
     if ($order) {
       // Load the payment method, since it won't be available
       // if no $order object was passed in as argument.
