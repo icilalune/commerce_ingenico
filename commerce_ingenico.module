@@ -218,8 +218,6 @@ function commerce_ingenico_cards_redirect_callback() {
   $order = explode('-', $order_id);
 
   $order = commerce_order_load($order[0]);
-  $order->status = 'pending';
-  commerce_order_save($order);
   $feedback = commerce_ingenico_get_feedback();
   $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
 
@@ -250,6 +248,8 @@ function commerce_ingenico_cards_redirect_callback() {
       if (!empty($user->uid)) {
         commerce_payment_transaction_save($transaction);
       }
+
+      commerce_order_status_update($order, 'pending');
     }
     // If successeful operation go to checkout complete.
     return drupal_goto(t('checkout/@order/complete', array('@order' => $order->order_id)));
@@ -275,7 +275,9 @@ function commerce_ingenico_cards_redirect_callback() {
     if ($payment_method['settings']['logs'] == 0) {
       watchdog('commerce_ingenico', "The order# @order was cancelled.", array('@order' => $order->order_id), WATCHDOG_ERROR);
     }
-    return drupal_goto($base_root);
+    commerce_order_status_update($order, 'checkout_review');
+    return drupal_goto(t('checkout/@order', array('@order' => $order->order_id)));
+
   }
 }
 
