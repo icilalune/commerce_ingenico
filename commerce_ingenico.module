@@ -231,7 +231,13 @@ function commerce_ingenico_cards_redirect_callback() {
   if (!empty($_GET['ACCEPTANCE']) and isset($_GET['NCERROR']) and $_GET['NCERROR'] == 0) {
     // Store the transaction.
     if (!empty($order_id)) {
-      $transaction = commerce_payment_transaction_new('ingenico_offsite', $order->order_id);
+      $transaction_id = commerce_ingenico_get_payment_transaction($_GET['PAYID']);
+      if (!$transaction_id) {
+        $transaction = commerce_payment_transaction_new('ingenico_offsite', $order->order_id);
+      }
+      else {
+        $transaction = commerce_payment_transaction_load($transaction_id);
+      }
       $transaction->uid = $user->uid;
       $transaction->order_id = $order->order_id;
       $transaction->payment_method = 'ingenico_offsite';
