@@ -1315,15 +1315,25 @@ function commerce_ingenico_callback() {
       // Load the payment method, since it won't be available
       // if no $order object was passed in as argument.
       $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
-      if (!$payment_method || !in_array($payment_method['method_id'], array('ingenico_direct', 'ingenico_offsite'))) {
-        return FALSE;
-      }
-      if (commerce_ingenico_valid_sha_callback($order, $payment_method, $feedback)) {
-        commerce_ingenico_process_transaction($order, $payment_method, $feedback);
+      if ($payment_method && in_array($payment_method['method_id'], array('ingenico_direct', 'ingenico_offsite'))) {
+        if (commerce_ingenico_valid_sha_callback($order, $payment_method, $feedback)) {
+          commerce_ingenico_process_transaction($order, $payment_method, $feedback);
+          echo 'OK';
+          drupal_exit();
+        }else{
+          echo 'Error SHA';
+          drupal_access_denied();
+          drupal_exit();
+        }
+      }else{
+        echo 'Error Payment Method';
+        drupal_access_denied();
+        drupal_exit();
       }
     }
   }
-  return FALSE;
+  drupal_not_found();
+  drupal_exit();
 }
 
 /**
