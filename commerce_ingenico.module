@@ -255,7 +255,6 @@ function commerce_ingenico_cards_redirect_callback() {
         commerce_payment_transaction_save($transaction);
       }
 
-      commerce_order_status_update($order, 'pending');
     }
     // If successeful operation go to checkout complete.
     return drupal_goto(t('checkout/@order/complete', array('@order' => $order->order_id)));
