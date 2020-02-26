@@ -1355,14 +1355,13 @@ function commerce_ingenico_process_callback($order, $payment_method) {
 /**
  * Get transaction with a specific Ingenico PAYID.
  */
-function commerce_ingenico_get_payment_transaction($feedback) {
-  $feedback_remote_id = $feedback['PAYID'];
+function commerce_ingenico_get_payment_transaction($payid) {
   $query = new EntityFieldQuery();
 
   $result = $query
     ->entityCondition('entity_type', 'commerce_payment_transaction')
     ->propertyCondition('payment_method', array('ingenico_offsite', 'ingenico_direct'))
-    ->propertyCondition('remote_id', $feedback_remote_id)
+    ->propertyCondition('remote_id', $payid)
     ->execute();
   if (isset($result['commerce_payment_transaction']) && count($result['commerce_payment_transaction']) > 0) {
     $transaction = array_pop($result['commerce_payment_transaction']);
@@ -1384,7 +1383,7 @@ function commerce_ingenico_get_payment_transaction($feedback) {
  *   Specifies whether to call redirect functions or not
  */
 function commerce_ingenico_process_transaction($order, $payment_method, $feedback, $redirect = TRUE) {
-  $transaction_id = commerce_ingenico_get_payment_transaction($feedback);
+  $transaction_id = commerce_ingenico_get_payment_transaction($feedback['PAYID']);
   if (!$transaction_id) {
     $transaction = commerce_payment_transaction_new('ingenico_offsite', $order->order_id);
   }
