@@ -58,7 +58,7 @@ function commerce_ingenico_commerce_payment_method_info() {
   $payment_methods = array();
 
   $payment_methods['ingenico_offsite'] = array(
-    'base' => 'commerce_ingenico',
+    'base' => 'commerce_ingenico_offsite',
     'title' => t('Ingenico online gateway'),
     'short_title' => t('Ingenico online gateway'),
     'display_title' => t('Ingenico online gateway'),
@@ -306,22 +306,6 @@ function commerce_ingenico_menu_alter(&$items) {
     'file' => $file_path,
     'weight' => 10,
   );
-}
-
-/**
- * Alter the redirect form for the offsite payment method.
- */
-function commerce_ingenico_redirect_alter_form($form, &$form_state, $order) {
-  $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
-
-  $order->data['payment_redirect_key'] = drupal_hash_base64($order->changed);
-  $settings = array(
-    'cancel_return' => url('checkout/' . $order->order_id . '/payment/back/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
-    'return' => url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
-    'payment_method' => $payment_method['instance_id'],
-  );
-  commerce_payment_redirect_pane_next_page($order);
-  return commerce_ingenico_build_redirect_form($form, $form_state, $order, $payment_method['settings'] + $settings);
 }
 
 /**
@@ -645,6 +629,10 @@ function commerce_ingenico_api_object($settings = '', $payment_method = 'ingenic
   }
 
 
+}
+
+function commerce_ingenico_offsite_settings_form($settings = NULL) {
+  return commerce_ingenico_settings_form($settings);
 }
 
 /**
@@ -1048,7 +1036,7 @@ function validate_element($element, $form, &$form_state) {
  * returns form elements that should be submitted to the redirected
  * payment service
  */
-function commerce_ingenico_redirect_form($form, &$form_state, $order, $payment_method) {
+function commerce_ingenico_offsite_redirect_form($form, &$form_state, $order, $payment_method) {
   // Return an error if the enabling action's settings haven't been configured.
   if (empty($payment_method['settings']['pspid'])) {
     drupal_set_message(t('Ingenico is not configured for use. No Ingenico PSPID has been specified.'), 'error');
@@ -1176,19 +1164,6 @@ function commerce_ingenico_build_redirect_form($form, &$form_state, $order, $set
     $data['OPERATION'] = 'RES';
   }
 
-  if (!empty($settings['modify_card_types']) and $settings['modify_card_types'] == 1) {
-    $data['ACCEPTURL'] = $base_root . '/commerce_ingenico/redirect';
-    $data['DECLINEURL'] = $base_root . '/commerce_ingenico/redirect';
-    $data['EXCEPTIONURL'] = $base_root . '/commerce_ingenico/redirect';
-    $data['CANCELURL'] = $base_root . '/commerce_ingenico/redirect';
-  }
-  else {
-    $data['ACCEPTURL'] = $base_root . '/commerce_ingenico/redirect';
-    $data['DECLINEURL'] = $base_root . '/commerce_ingenico/redirect';
-    $data['EXCEPTIONURL'] = $base_root . '/commerce_ingenico/redirect';
-    $data['CANCELURL'] = $base_root . '/commerce_ingenico/redirect';
-  }
-
   if (!empty($settings['alias_manager']['enable_alias_manager'])) {
     $data['ALIAS'] = $user->uid;
     $data['ALIASUSAGE'] = $settings['alias_manager']['alias_manager_usage'];
@@ -1259,7 +1234,7 @@ function commerce_ingenico_build_redirect_form($form, &$form_state, $order, $set
 /**
  * Implements hook_redirect_form_validate().
  */
-function commerce_ingenico_redirect_form_validate($order, $payment_method) {
+function commerce_ingenico_offsite_redirect_form_validate($order, $payment_method) {
   return commerce_ingenico_process_callback($order, $payment_method);
 }
 
@@ -1351,10 +1326,10 @@ function commerce_ingenico_process_callback($order, $payment_method) {
   if ($feedback = commerce_ingenico_get_feedback()) {
     if (commerce_ingenico_valid_sha_callback($order, $payment_method, $feedback)) {
       // Process the transaction based on the Ingenico parameters received.
-      commerce_ingenico_process_transaction($order, $payment_method, $feedback);
-      return TRUE;
+      return commerce_ingenico_process_transaction($order, $payment_method, $feedback);
     }
   }
+  return FALSE;
 }
 
 /**
@@ -1387,7 +1362,7 @@ function commerce_ingenico_get_payment_transaction($payid) {
  * @param bool $redirect
  *   Specifies whether to call redirect functions or not
  */
-function commerce_ingenico_process_transaction($order, $payment_method, $feedback, $redirect = TRUE) {
+function commerce_ingenico_process_transaction($order, $payment_method, $feedback) {
   $transaction_id = commerce_ingenico_get_payment_transaction($feedback['PAYID']);
   if (!$transaction_id) {
     $transaction = commerce_payment_transaction_new('ingenico_offsite', $order->order_id);
@@ -1405,20 +1380,12 @@ function commerce_ingenico_process_transaction($order, $payment_method, $feedbac
   $transaction->amount = $order->commerce_order_total[LANGUAGE_NONE][0]['amount'];
   $transaction->currency_code = $order->commerce_order_total[LANGUAGE_NONE][0]['currency_code'];
   // Payment status.
-  $transaction->payment_method = 'ingenico_offsite';
   $transaction->remote_status = $feedback['STATUS'];
-  $transaction->status = ($payment_method['settings']['transaction_type_process'] == 'capture_manual') ? COMMERCE_PAYMENT_STATUS_PENDING : COMMERCE_INGENICO_PAYMENT_STATUS_CAPTURED;
+  $transaction->status = $payment_status['code'];
   $transaction->message = commerce_ingenico_status_messages($feedback['STATUS']);
   $transaction->payload = $feedback;
   commerce_payment_transaction_save($transaction);
-  if ($redirect) {
-    if ($payment_status['code'] == COMMERCE_PAYMENT_STATUS_FAILURE) {
-      commerce_payment_redirect_pane_previous_page($order);
-    }
-    else {
-      commerce_payment_redirect_pane_next_page($order);
-    }
-  }
+  return $payment_status['code'] != COMMERCE_PAYMENT_STATUS_FAILURE;
 }
 
 /**
