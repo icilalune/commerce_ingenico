@@ -1320,6 +1320,10 @@ function commerce_ingenico_get_payment_transaction($feedback) {
  *   Specifies whether to call redirect functions or not
  */
 function commerce_ingenico_process_transaction($order, $payment_method, $feedback, $redirect = TRUE) {
+  // Only allow one transaction to be processed per order at a time.
+  while (!lock_acquire('commerce_ingenico_process_transaction:' . $order->order_id)) {
+    lock_wait('commerce_ingenico_process_transaction:' . $order->order_id);
+  }
   $transaction_id = commerce_ingenico_get_payment_transaction($feedback);
   if (!$transaction_id) {
     $transaction = commerce_payment_transaction_new('ingenico', $order->order_id);
@@ -1343,6 +1347,10 @@ function commerce_ingenico_process_transaction($order, $payment_method, $feedbac
   $transaction->message = commerce_ingenico_status_messages($feedback['STATUS']);
   $transaction->payload = $feedback;
   commerce_payment_transaction_save($transaction);
+
+  // Release the lock in case the following code terminates the request.
+  lock_release('commerce_ingenico_process_transaction:' . $order->order_id);
+
   if ($redirect) {
     if ($payment_status['code'] == COMMERCE_PAYMENT_STATUS_FAILURE) {
       commerce_payment_redirect_pane_previous_page($order);
