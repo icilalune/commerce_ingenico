@@ -207,76 +207,28 @@ function commerce_ingenico_menu() {
  * Process the transaction after the redirection for preselected card types.
  */
 function commerce_ingenico_cards_redirect_callback() {
-  global $user, $base_root;
-
-  if (empty($_POST['orderID'])) {
-    $order_id = $_GET['orderID'];
-  }
-  else {
-    $order_id = check_plain($_POST['orderID']);
-  }
-  $order = explode('-', $order_id);
-
-  $order = commerce_order_load($order[0]);
-  $order->status = 'pending';
-  commerce_order_save($order);
-  $feedback = commerce_ingenico_get_feedback();
-  $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
-
-  $api = commerce_ingenico_api_object($payment_method['settings'], $order->data['payment_method']);
-  $api->logRequest(array(
-    '@type' => 'Response',
-    '@operation' => 'redirect',
-    '%value' => $feedback,
-  ));
-
-  if (!empty($_GET['ACCEPTANCE']) and isset($_GET['NCERROR']) and $_GET['NCERROR'] == 0) {
-    // Store the transaction.
-    if (!empty($order_id)) {
-      $transaction = commerce_payment_transaction_new('ingenico_offsite', $order->order_id);
-      $transaction->uid = $user->uid;
-      $transaction->order_id = $order->order_id;
-      $transaction->payment_method = 'ingenico_offsite';
-      $transaction->instance_id = $order->data['payment_method'];
-      $transaction->remote_id = !empty($_GET['PAYID']) ? $_GET['PAYID'] : '';
-      $transaction->message = commerce_ingenico_status_messages($feedback['STATUS']);
-      $transaction->amount = $order->commerce_order_total['und'][0]['amount'];
-      $transaction->currency_code = $order->commerce_order_total['und'][0]['currency_code'];
-      $transaction->status = ($payment_method['settings']['transaction_type_process'] == 'capture_manual') ? COMMERCE_PAYMENT_STATUS_PENDING : COMMERCE_INGENICO_PAYMENT_STATUS_CAPTURED;
-      $transaction->remote_status = $_GET['STATUS'];
-      $transaction->created = $order->created;
-      $transaction->payload = $feedback;
-
-      if (!empty($user->uid)) {
-        commerce_payment_transaction_save($transaction);
+  global $language;
+  // Load order and payment_method objects.
+  if ($feedback = commerce_ingenico_get_feedback()) {
+    $order_id = explode('-', $feedback['ORDERID']);
+    $order = commerce_order_load_by_number($order_id[0]);
+    if ($order) {
+      // Load the payment method, since it won't be available
+      // if no $order object was passed in as argument.
+      $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
+      if (!$payment_method || $payment_method['method_id'] != 'ingenico_offsite') {
+        return MENU_NOT_FOUND;
+      }
+      if (commerce_ingenico_valid_sha_callback($order, $payment_method, $feedback)) {
+        commerce_ingenico_process_transaction($order, $payment_method, $feedback);
+        drupal_goto(commerce_checkout_order_uri($order), array('language' => $language));
+      }
+      else {
+        watchdog('commerce_ingenico', 'Feedback in redirect was not valid.', array(), WATCHDOG_ERROR);
       }
     }
-    // If successeful operation go to checkout complete.
-    return drupal_goto(t('checkout/@order/complete', array('@order' => $order->order_id)));
   }
-  else {
-    drupal_set_message(t('The order# @order was cancelled.', array('@order' => $order->order_id)), 'error');
-    $transaction = commerce_payment_transaction_new('ingenico_offsite', $order->order_id);
-    $transaction->uid = $user->uid;
-    $transaction->order_id = $order->order_id;
-    $transaction->payment_method = 'ingenico_offsite';
-    $transaction->instance_id = $order->data['payment_method'];
-    $transaction->remote_id = !empty($_GET['PAYID']) ? $_GET['PAYID'] : '';
-    $transaction->message = commerce_ingenico_status_messages($_GET['STATUS']);
-    $transaction->amount = $order->commerce_order_total['und'][0]['amount'];
-    $transaction->currency_code = $order->commerce_order_total['und'][0]['currency_code'];
-    $transaction->status = COMMERCE_INGENICO_PAYMENT_STATUS_CANCELLED;
-    $transaction->remote_status = $_GET['STATUS'];
-    $transaction->created = $order->created;
-    $transaction->payload = (!empty($feedback)) ? $feedback : $_GET;
-    if (!empty($user->uid)) {
-      commerce_payment_transaction_save($transaction);
-    }
-    if ($payment_method['settings']['logs'] == 0) {
-      watchdog('commerce_ingenico', "The order# @order was cancelled.", array('@order' => $order->order_id), WATCHDOG_ERROR);
-    }
-    return drupal_goto($base_root);
-  }
+  return MENU_NOT_FOUND;
 }
 
 /**
@@ -1288,7 +1240,8 @@ function commerce_ingenico_valid_sha_callback($order, $payment_method, $feedback
   if (empty($payment_method)) {
     $payment_method = commerce_payment_method_instance_load('ingenico_offsite|commerce_payment_ingenico_offsite');
   }
-  if (!commerce_ingenico_feedback_valid_sha($feedback)) {
+  $api = commerce_ingenico_api_object($payment_method['settings'], $order->data['payment_method']);
+  if (!commerce_ingenico_feedback_valid_sha($feedback, $api)) {
     if ($payment_method['settings']['logs'] == 0) {
       watchdog('commerce_ingenico', "SHA signature doesn't match", array(), WATCHDOG_ERROR);
     }
@@ -1344,7 +1297,7 @@ function commerce_ingenico_get_payment_transaction($feedback) {
 
   $result = $query
     ->entityCondition('entity_type', 'commerce_payment_transaction')
-    ->propertyCondition('payment_method', 'ingenico')
+    ->propertyCondition('payment_method', array('ingenico', 'ingenico_offsite', 'ingenico_direct'))
     ->propertyCondition('remote_id', $feedback_remote_id)
     ->execute();
   if (isset($result['commerce_payment_transaction']) && count($result['commerce_payment_transaction']) > 0) {
