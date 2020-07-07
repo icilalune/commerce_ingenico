@@ -9,7 +9,7 @@
  * Validate the feedback with the SHA signature.
  */
 function commerce_ingenico_feedback_valid_sha($feedback, $api = NULL) {
-  $incoming_sha = '';
+  $incoming_sha = array();
   foreach (commerce_ingenico_sha_out_parameters() as $param) {
     if (isset($feedback[$param]) && $feedback[$param] !== '') {
       $incoming_sha[$param] = $feedback[$param];
