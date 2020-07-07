@@ -1334,8 +1334,8 @@ function commerce_ingenico_process_transaction($order, $payment_method, $feedbac
   $transaction->instance_id = $payment_method['instance_id'];
   $transaction->remote_id = $feedback['PAYID'];
   // Payment amount details.
-  $transaction->amount = $order->commerce_order_total[LANGUAGE_NONE][0]['amount'];
-  $transaction->currency_code = $order->commerce_order_total[LANGUAGE_NONE][0]['currency_code'];
+  $transaction->amount = $feedback['AMOUNT'] * 100;
+  $transaction->currency_code = $feedback['CURRENCY'];
   // Payment status.
   $transaction->payment_method = 'ingenico_offsite';
   $transaction->remote_status = $feedback['STATUS'];
