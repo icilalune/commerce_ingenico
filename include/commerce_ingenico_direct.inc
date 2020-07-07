@@ -182,7 +182,6 @@ function commerce_ingenico_submit_form_submit($payment_method, $pane_form, $pane
         $new_form[$key] = $value['#value'];
       }
     }
-    drupal_goto($result['#action'], array('query' => $new_form));
   }
   else {
     $customer_profile = commerce_ingenico_customer_profile_load($order->commerce_customer_billing['und'][0]['profile_id']);
